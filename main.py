@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from datetime import datetime
 
+# Słownik zawierający identyfikatory województw w bazie GUS
 WOJEWODZTWA = {
     "POLSKA": 33617,
     "MAŁOPOLSKIE": 33619,
@@ -23,6 +24,7 @@ WOJEWODZTWA = {
     "MAZOWIECKIE": 37380
 }
 
+# Słownik zawierający identyfikatory działów budżetowych w bazie GUS
 DZIALY = {
     "Transport i łączność": 7350010,
     "Turystyka": 7350022,
@@ -41,12 +43,16 @@ DZIALY = {
 }
 
 def get_gus_income_data(year, wojewodztwo_id, dzial_id):
+    """
+    Pobiera dane z API GUS dla określonego roku, województwa i działu
+    Zwraca odpowiedź w formacie JSON
+    """
     base_url = "https://api-dbw.stat.gov.pl/api/1.1.0/variable/variable-data-section"
     params = {
-        "id-zmienna": "1192",
-        "id-przekroj": "1046",
+        "id-zmienna": "1192",  # ID zmiennej dla dochodów
+        "id-przekroj": "1046", # ID przekroju danych
         "id-rok": str(year),
-        "id-okres": "282",
+        "id-okres": "282",     # Okres roczny
         "ile-na-stronie": "5000",
         "numer-strony": "0",
         "lang": "pl"
@@ -56,12 +62,18 @@ def get_gus_income_data(year, wojewodztwo_id, dzial_id):
     return response.json()
 
 def create_earnings_chart(wojewodztwo_nazwa, dzial_nazwa):
+    """
+    Tworzy wykres i plik CSV z danymi o dochodach dla wybranego województwa i działu
+    Zapisuje wykres jako PNG i dane jako CSV
+    Zwraca DataFrame z zebranymi danymi
+    """
     wojewodztwo_id = WOJEWODZTWA[wojewodztwo_nazwa]
     dzial_id = DZIALY[dzial_nazwa]
     
-    years = range(2010, 2023)
+    years = range(2010, 2023)  # Zakres lat 2010-2022
     earnings = []
     
+    # Pobieranie danych dla każdego roku
     for year in years:
         data = get_gus_income_data(year, wojewodztwo_id, dzial_id)
         for item in data['data']:
@@ -69,6 +81,7 @@ def create_earnings_chart(wojewodztwo_nazwa, dzial_nazwa):
                 earnings.append(item['wartosc'])
                 break
     
+    # Tworzenie wykresu
     plt.figure(figsize=(12, 6))
     plt.plot(list(years), earnings, marker='o')
     plt.title(f'Dochody dla {wojewodztwo_nazwa} - {dzial_nazwa} (2010-2022)')
@@ -76,9 +89,11 @@ def create_earnings_chart(wojewodztwo_nazwa, dzial_nazwa):
     plt.ylabel('Wartość (PLN)')
     plt.grid(True)
     
+    # Generowanie nazwy pliku z aktualną datą
     filename = f'dochody_{wojewodztwo_nazwa}_{dzial_nazwa}_{datetime.now().strftime("%Y%m%d")}'
     plt.savefig(f'{filename}.png')
     
+    # Zapisywanie danych do CSV
     df = pd.DataFrame({
         'rok': list(years),
         'dochody': earnings
@@ -88,6 +103,14 @@ def create_earnings_chart(wojewodztwo_nazwa, dzial_nazwa):
     return df
 
 def main():
+    """
+    Główna funkcja programu:
+    1. Wyświetla dostępne województwa
+    2. Pobiera wybór użytkownika
+    3. Wyświetla dostępne działy
+    4. Pobiera wybór użytkownika
+    5. Generuje i zapisuje wykres oraz dane
+    """
     print("Dostępne województwa:")
     for i, woj in enumerate(WOJEWODZTWA.keys(), 1):
         print(f"{i}. {woj}")
